@@ -89,5 +89,4 @@
         r => false))
     (fact "with wrong value"
       (let [r (validate {:firstname "" :surname "" :phonenumber 12334})]
-        r => false))
-)
+        r => false)))
