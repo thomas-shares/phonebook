@@ -34,14 +34,14 @@
                              :last-added "38d77ce0-6073-11e5-960a-d35f77d80ceb"}))
 
 (defn validate [data]
-   (println data)
+   ;(println data)
    (try
       (s/validate schema data)
     true
     (catch Exception e (do (println  (str "exception " (.getMessage e))) false) )))
 
 (defn get-phonebook []
-  (println @phonebook-db)
+  ;(println @phonebook-db)
   (let [phonebook (:db @phonebook-db)
         m (zipmap (map #(.toString %) (keys phonebook)) (vals phonebook))]
   (-> (r/response (pr-str m))
@@ -54,9 +54,9 @@
     (assoc-in new-db [:last-added] (clojure.string/replace (.toString new-uuid) "\"" "" ))))
 
 (defn add-user [data]
-  (println data)
+  ;(println data)
   (let [parsed-data (edn/read-string data)]
-  (println  parsed-data )
+  ;(println  parsed-data )
     (if (validate parsed-data)
       (do (let [{id :last-added} (swap! phonebook-db atomic-user-add parsed-data )]
         (println @phonebook-db)
@@ -64,14 +64,14 @@
       {:status 400 :body "malformed request\n"})))
 
 (defn delete-user [id]
-  (println id )
+  ;(println id )
   (if (contains? (:db @phonebook-db ) id)
     (do (swap! phonebook-db update-in [:db] dissoc id)
        {:status 200})
      {:status 404 :body (str id " does not exist\n")}))
 
 (defn update-user [id data]
-  (println "here now" id "   " @phonebook-db )
+  ;(println "here now" id "   " @phonebook-db )
   (let [parsed-data (edn/read-string data)]
     (if (contains? (:db @phonebook-db) id)
       (do (if (validate parsed-data)
