@@ -34,11 +34,16 @@
                              :last-added "38d77ce0-6073-11e5-960a-d35f77d80ceb"}))
 
 (defn validate [data]
+   ; returns a map with key :valid if it has been successfully validated
+   ; and return a map with key :invalid if not, in that case it also contains
+   ; the error message as a value for key :reason
    ;(println data)
    (try
       (s/validate schema data)
-    true
-    (catch Exception e (do (println  (str "exception " (.getMessage e))) false) )))
+    {:valid true}
+    (catch Exception e 
+      (do (println  (str "exception " (.getMessage e)))
+          {:invalid true :reason (.getMessage e)}) )))
 
 (defn get-phonebook []
   ;(println @phonebook-db)
@@ -55,13 +60,14 @@
 
 (defn add-user [data]
   ;(println data)
-  (let [parsed-data (edn/read-string data)]
+  (let [parsed-data (edn/read-string data)
+        validated (validate parsed-data)]
   ;(println  parsed-data )
-    (if (validate parsed-data)
+    (if (contains? validated :valid)
       (do (let [{id :last-added} (swap! phonebook-db atomic-user-add parsed-data )]
         (println @phonebook-db)
       {:status 201 :body (pr-str id)}))
-      {:status 400 :body "malformed request\n"})))
+      {:status 400 :body (str "malformed request\n" (:invalid validated))})))
 
 (defn delete-user [id]
   ;(println id )
@@ -72,13 +78,15 @@
 
 (defn update-user [id data]
   ;(println "here now" id "   " @phonebook-db )
-  (let [parsed-data (edn/read-string data)]
-    (if (contains? (:db @phonebook-db) id)
-      (do (if (validate parsed-data)
-        (do (swap! phonebook-db assoc-in [:db  id] parsed-data)
-          {:status 200})
-          {:status 400 :body "malformed request\n"}))
-    {:status 404 :body (str id " does not exist\n")})))
+  (let [parsed-data (edn/read-string data) 
+        validated (validate parsed-data)]
+
+        (if (contains? (:db @phonebook-db) id)
+          (do (if (contains? validated :valid )
+                (do (swap! phonebook-db assoc-in [:db  id] parsed-data)
+                    {:status 200})
+                {:status 400 :body (str "malformed request\n" (:reason validated))}))
+          {:status 404 :body (str id " does not exist\n")})))
 
 (defn search-users [params]
   ;(println params)

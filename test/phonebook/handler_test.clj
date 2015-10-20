@@ -10,9 +10,9 @@
 (def phonebook {:db {  "80a8ea00-6072-11e5-960a-d35f77d80ceb"
                                {:first-name "Thomas"
                                 :surname "van der Veen"
-                                :phonenumber "07833177636"
-                                :adress {:street "Hut Farm Place"
-                                        :postcode "SO53 3LQ"}}
+                                :phonenumber "0783312345"
+                                :adress {:street "High Street"
+                                        :postcode "SO21 1QQ"}}
                       "38d77ce0-6073-11e5-960a-d35f77d80ceb"
                                {:firstname "Paul"
                                 :surname "M"
@@ -78,15 +78,17 @@
 
 
 (facts "test schemas"
-    (fact "test correct schema"
-      (let [r (validate   (get (:db phonebook) "38d77ce0-6073-11e5-960a-d35f77d80ceb" ))]
-        r => true))
-    (fact "test schema with address"
-      (let [r (validate {:firstname "" :surname "" :phonenumber "" :address {:place "" :country ""}})]
-        r => true))
-    (fact "test incorrect schema"
-      (let [r (validate {:firstnme "" :surname "" :phonenumber ""})]
-        r => false))
-    (fact "with wrong value"
-      (let [r (validate {:firstname "" :surname "" :phonenumber 12334})]
-        r => false)))
+  (fact "test correct schema"
+    (let [r (validate   (get (:db phonebook) "38d77ce0-6073-11e5-960a-d35f77d80ceb" ))]
+          r => {:valid true}))
+  (fact "test schema with address"
+    (let [r (validate {:firstname "" :surname "" :phonenumber "" :address {:place "" :country ""}})]
+          r => {:valid true}))
+  (fact "test incorrect schema"
+    (let [r (validate {:firstnme "" :surname "" :phonenumber ""})]
+          r => {:invalid true :reason
+             "Value does not match schema: {:firstname missing-required-key, :firstnme disallowed-key}"}))
+  (fact "with wrong value"
+    (let [r (validate {:firstname "" :surname "" :phonenumber 12334})]
+          r => {:invalid true :reason 
+             "Value does not match schema: {:phonenumber (not (instance? java.lang.String 12334))}"})))
