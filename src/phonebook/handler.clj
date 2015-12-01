@@ -20,87 +20,82 @@
 
 ;A phone book entry must contain the following details:
 ;- Surname
-;- Firstname
+;- First name
 ;- Phone number
 ;- Address (optional)
 
-(def schema {:firstname s/Str
+(def schema {:first-name s/Str
              :surname s/Str
-             :phonenumber s/Str
+             :phone-number s/Str
              (s/optional-key :address) {:place s/Str
                                         :country s/Str }})
 
 (def phonebook-db (atom {:db { }
-                             :last-added "38d77ce0-6073-11e5-960a-d35f77d80ceb"}))
+                         :last-added "38d77ce0-6073-11e5-960a-d35f77d80ceb"}))
 
 (defn validate [data]
-   ; returns a map with key :valid if it has been successfully validated
-   ; and return a map with key :invalid if not, in that case it also contains
-   ; the error message as a value for key :reason
-   ;(println data)
-   (try
-      (s/validate schema data)
+  ; returns a map with key :valid if it has been successfully validated
+  ; and return a map with key :invalid if not, in that case it also contains
+  ; the error message as a value for key :reason
+  ;(println data)
+  (try
+    (s/validate schema data)
     {:valid true}
-    (catch Exception e 
-      (do (println  (str "exception " (.getMessage e)))
-          {:invalid true :reason (.getMessage e)}) )))
+  (catch Exception e 
+    {:invalid true :reason (.getMessage e)} )))
 
 (defn get-phonebook []
-  ;(println @phonebook-db)
-  (let [phonebook (:db @phonebook-db)
-        m (zipmap (map #(.toString %) (keys phonebook)) (vals phonebook))]
-  (-> (r/response (pr-str m))
-      (r/content-type "application/edn"))))
+  (let [data (pr-str (:db @phonebook-db))]
+    (-> (r/response data)
+        (r/content-type "application/edn"))))
 
 (defn atomic-user-add [db data]
-  ;(println db )
   (let [new-uuid (.toString (UUID/randomUUID))
         new-db (assoc-in db [:db new-uuid] data)]
-    (assoc-in new-db [:last-added] (clojure.string/replace (.toString new-uuid) "\"" "" ))))
+    (assoc-in new-db [:last-added] (clojure.string/replace new-uuid "\"" "" ))))
 
 (defn add-user [data]
-  ;(println data)
   (let [parsed-data (edn/read-string data)
         validated (validate parsed-data)]
-  ;(println  parsed-data )
     (if (contains? validated :valid)
       (do (let [{id :last-added} (swap! phonebook-db atomic-user-add parsed-data )]
-        (println @phonebook-db)
-      {:status 201 :body (pr-str id)}))
-      {:status 400 :body (str "malformed request\n" (:invalid validated))})))
+        ; (println @phonebook-db)
+        {:status 201 :body (pr-str id)}))
+      {:status 400 :body (str "malformed request\n" (:reason validated))})))
 
 (defn delete-user [id]
-  ;(println id )
   (if (contains? (:db @phonebook-db ) id)
     (do (swap! phonebook-db update-in [:db] dissoc id)
-       {:status 200})
-     {:status 404 :body (str id " does not exist\n")}))
+      {:status 200})
+    {:status 404 :body (str id " does not exist\n")}))
 
 (defn update-user [id data]
-  ;(println "here now" id "   " @phonebook-db )
   (let [parsed-data (edn/read-string data) 
         validated (validate parsed-data)]
-
-        (if (contains? (:db @phonebook-db) id)
-          (do (if (contains? validated :valid )
-                (do (swap! phonebook-db assoc-in [:db  id] parsed-data)
-                    {:status 200})
-                {:status 400 :body (str "malformed request\n" (:reason validated))}))
-          {:status 404 :body (str id " does not exist\n")})))
+    (if (contains? (:db @phonebook-db) id)
+      (do 
+        (if (contains? validated :valid )
+          (do 
+            (swap! phonebook-db assoc-in [:db id] parsed-data)
+            {:status 200})
+          {:status 400 :body (str "malformed request\n" (:reason validated))}))
+      {:status 404 :body (str id " does not exist\n")})))
 
 (defn search-users [params]
-  ;(println params)
   (let [surname (:surname params)
-        filtered  (into {} (filter #(= surname (:surname (second %)) ) (:db @phonebook-db)))]
+        filtered (into {}
+                   (filter #(= surname (:surname (second %)))
+                     (:db @phonebook-db)))]
       (-> (r/response (pr-str filtered))
           (r/content-type "application/edn"))))
 
 (defroutes app-routes
-  (GET "/v1/phonebook" [] (get-phonebook))
+  (GET  "/v1/phonebook" [] (get-phonebook))
   (POST "/v1/phonebook" {body :body}  (add-user (slurp body)))
-  (PUT "/v1/phonebook/:id" {body :body params :params} (update-user  (:id params) (slurp body)))
+  (PUT  "/v1/phonebook/:id" {body :body params :params}
+                              (update-user  (:id params) (slurp body)))
   (DELETE "/v1/phonebook/:id" [id] (delete-user id))
-  (GET "/v1/phonebook/search" {params :params} (search-users params))
+  (GET    "/v1/phonebook/search" {params :params} (search-users params))
   (route/not-found "Not Found"))
 
 (def app
