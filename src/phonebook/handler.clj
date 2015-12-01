@@ -55,13 +55,12 @@
     (assoc-in new-db [:last-added] (clojure.string/replace new-uuid "\"" "" ))))
 
 (defn add-user [data]
-  (let [parsed-data (edn/read-string data)
-        validated (validate parsed-data)]
-    (if (contains? validated :valid)
-      (do (let [{id :last-added} (swap! phonebook-db atomic-user-add parsed-data )]
-        ; (println @phonebook-db)
-        {:status 201 :body (pr-str id)}))
-      {:status 400 :body (str "malformed request\n" (:reason validated))})))
+  (let [parsed-data (edn/read-string data)]
+    (if-let [error (s/check schema parsed-data)]
+      {:status 400 :body (str "malformd request:\n" error) }
+      (do
+        (let [{id :last-added} (swap! phonebook-db atomic-user-add parsed-data)]
+        {:status 201 :body (pr-str id)})))))
 
 (defn delete-user [id]
   (if (contains? (:db @phonebook-db ) id)
@@ -70,15 +69,14 @@
     {:status 404 :body (str id " does not exist\n")}))
 
 (defn update-user [id data]
-  (let [parsed-data (edn/read-string data) 
-        validated (validate parsed-data)]
+  (let [parsed-data (edn/read-string data)]
     (if (contains? (:db @phonebook-db) id)
       (do 
-        (if (contains? validated :valid )
+        (if-let [error (s/check schema parsed-data)]
+          {:status 400 :body (str "malformed request\n" error)}
           (do 
             (swap! phonebook-db assoc-in [:db id] parsed-data)
-            {:status 200})
-          {:status 400 :body (str "malformed request\n" (:reason validated))}))
+            {:status 200})))
       {:status 404 :body (str id " does not exist\n")})))
 
 (defn search-users [params]
