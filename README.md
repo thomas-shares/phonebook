@@ -25,13 +25,13 @@ curl http://localhost:3000/v1/phonebook
 ```
 To add an entry to the phonebook:
 ```
-curl http://localhost:3000/v1/phonebook -H "Content-Type: application/data" -X POST -d '{:firstname "fred" :surname "Smith" :phonenumber "012345"}'
+curl http://localhost:3000/v1/phonebook -H "Content-Type: application/data" -X POST -d '{:first-name "fred" :surname "Smith" :phonenumber "012345"}'
 ```
 This will return the UUID of this entry.
 
 To update an entry:
 ```
-curl http://localhost:3000/v1/phonebook/38d77ce0-6073-11e5-960a-d35f77d80ceb -H "Content-Type: application/data" -X PUT -d '{:firstname "Fred" :surname "Smith" :phonenumber "012345"}'
+curl http://localhost:3000/v1/phonebook/38d77ce0-6073-11e5-960a-d35f77d80ceb -H "Content-Type: application/data" -X PUT -d '{:first-name "Fred" :surname "Smith" :phonenumber "012345"}'
 ```
 And to search for an entry:
 ```
@@ -40,7 +40,7 @@ curl http://localhost:3000/v1/phonebook/search?surname=Smith
 
 To delete an entry:
 ```
-curl http://localhost:3000/v1/phonebook/38d77ce0-6073-11e5-960a-d35f77d80ceb -X delete 
+curl http://localhost:3000/v1/phonebook/38d77ce0-6073-11e5-960a-d35f77d80ceb -X delete
 ```
 
 ## License
