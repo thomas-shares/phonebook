@@ -6,8 +6,8 @@
             [ring.mock.request :as mock]
             [clojure.spec.test :as stest]))
 
-(stest/instrument `atomic-user-add)
-
+;;(stest/instrument `atomic-user-add)
+;;http://www.anthony-galea.com/blog/post/hello-parking-garage-meet-clojure.spec/
 (def phonebook {:db {  #uuid "80a8ea00-6072-11e5-960a-d35f77d80ceb"
                                {:first-name "Thomas"
                                 :surname "van der Veen"
@@ -20,9 +20,9 @@
                                 :phonenumber "07123456"}}
                 :last-added #uuid "38d77ce0-6073-11e5-960a-d35f77d80ceb"})
 
-(atomic-user-add  phonebook  {:first-name "Paul"
-                              :surname "M"
-                              :phonenumber "07123456"})
+;(atomic-user-add  phonebook  {:first-name "Paul"})
+;                              :surname "M"})
+;                              :phonenumber "07123456"})
 
 (defn set-atom [f]
   (reset! phonebook-db phonebook)

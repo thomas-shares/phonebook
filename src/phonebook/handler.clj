@@ -1,16 +1,13 @@
 (ns phonebook.handler
   (:require [clojure.edn :as edn]
             [clojure.spec :as s]
+            [clojure.spec.test :as stest]
             [compojure.core :refer :all]
-        ;;    [clj-uuid :as uuid]
-        ;;    [schema.core :as s]
             [compojure.route :as route]
             [compojure.handler :as handler]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [ring.middleware.session :as session]
             [ring.util.response :as r]))
-
-(import java.util.UUID)
 
 ;Acceptance criteria.
 ;- List all entries in the phone book.
@@ -25,11 +22,6 @@
 ;- Phone number
 ;- Address (optional)
 
-;(def spec   {:first-name s/Str})
-;             :surname s/Str})
-;             :phone-number s/Str})
-;             (s/optional-key :address) {:place s/Str}})
-;                                        :country s/Str}})
 (s/def ::first-name string?)
 (s/def ::surname string?)
 (s/def ::phonenumber string?)
@@ -39,18 +31,18 @@
 (s/def ::address (s/keys :req-un [::country ::place]))
 
 (s/def ::entry (s/keys :req-un [::first-name ::surname ::phonenumber]
-                   :opt-un [::address]))
+                       :opt-un [::address]))
 
-(s/explain  ::entry   {:first-name :key
-                       :surname "van der Veen"
-                       :phonenumber "0783312345"
-                       :address {:country "High Street"
-                                 :place   "SO21 1QQ"}})
+;(s/explain  ::entry   {:first-name "Thomas"})
+;                       :surname "van der Veen"})
+;                       :phonenumber "0783312345"})
+;                       :address {:country "High Street"}})
+;                                 :place   "SO21 1QQ"}})
 
 (s/def ::db (s/* ::entry))
 (s/def ::last-added uuid?)
 
-(def phonebook-db-spec (s/keys :req-un [::db ::last-added]))
+(s/def ::phonebook-db-spec (s/keys :req-un {::db ::last-added}))
 
 (def phonebook-db (atom {:db {}
                          :last-added #uuid "38d77ce0-6073-11e5-960a-d35f77d80ceb"}))
@@ -60,15 +52,22 @@
     (-> (r/response data)
         (r/content-type "application/edn"))))
 
-;(s/fdef atomic-user-add)
-;  :args (s/cat :db phonebook-db-spec :data ::entry))
-  ;:ret phonebook-db-spec)
-;  :fn)
+
+(stest/instrument 'atomic-user-add')
+
+(s/fdef atomic-user-add
+  :args (s/cat :db ::phonebook-db-spec :data ::entry)
+  :ret ::phonebook-db-spec
+  :fn #(not (= (count (-> % :args :db))
+             (inc (count (-> % :ret :db))))))
 
 (defn atomic-user-add [db data]
-  (let [new-uuid (UUID/randomUUID)
+  (let [new-uuid (java.util.UUID/randomUUID)
         new-db (assoc-in db [:db new-uuid] data)]
-    (assoc-in new-db [:last-added] new-uuid)))
+    (assoc (assoc-in new-db [:last-added] new-uuid) :sdf 2)))
+
+(stest/instrument `atomic-user-add)
+(stest/check `atomic-user-add)
 
 (defn add-user [data]
   (let [parsed-data (edn/read-string data)]
